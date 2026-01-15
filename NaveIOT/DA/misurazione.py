@@ -7,10 +7,8 @@
 # Simulazione sensore temperatura, da 10 a 40 gradi
 # cifre decimali pari a N
 #
-import random   # Generazione numeri casuali
-#
-# Funzioni
-#
+import random
+
 def on_temperatura(N):
     TEMP = round(random.uniform(10,40), N)
     return TEMP
@@ -19,4 +17,3 @@ def on_temperatura(N):
 def on_umidita(N):
     UMID = round(random.uniform(20,90), N)
     return UMID
-#
