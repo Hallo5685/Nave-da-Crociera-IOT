@@ -49,5 +49,6 @@ if __name__ == "__main__":
 
         rilevazione += 1
         time.sleep(dati['TEMPO_RILEVAZIONE'])
+        json_file_dbt.closed()
 
     print("Salvataggio dei dati sui file completato.")
