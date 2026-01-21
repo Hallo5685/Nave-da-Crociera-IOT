@@ -45,8 +45,6 @@ if __name__ == "__main__":
         json.dump(JSON, json_file_dbt)
         json_file_dbt.write("\n\n")
 
-        json_file_dbt.close()
-
         rilevazione += 1
         time.sleep(dati['TEMPO_RILEVAZIONE'])
         json_file_dbt.closed()
