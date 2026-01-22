@@ -1,12 +1,12 @@
 import json
-import NaveIOT.DC.misurazione as misurazione
 import time
 import datetime
+from DC import misurazione
 
 if __name__ == "__main__":
 
     # Apertura di parametri.conf in lettura
-    with open('NaveIOT/DA/parametri.conf', 'r') as file:
+    with open('DA/parametri.conf', 'r') as file:
         dati = json.load(file)
 
     # variabili
@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
         try:
         # Apertura di parametri.conf in scrittura
-            json_file_dbt = open('NaveIOT/IOTp/iotdata.dbt', 'a', encoding='utf-8')
+            json_file_dbt = open('IOTp/iotdata.dbt', 'a', encoding='utf-8')
 
             temperatura = misurazione.on_temperatura(dati['N_DECIMALI'])
             umidita = misurazione.on_umidita(dati['N_DECIMALI'])
