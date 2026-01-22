@@ -1,5 +1,5 @@
 import json
-import misurazione
+import NaveIOT.DC.misurazione as misurazione
 import time
 import datetime
 
