@@ -1,4 +1,4 @@
-Progetto NaveIOT.
+Progetto NaveIOT
 
 Questo progetto scolastico prevede la simulazione della misurazione di temperatura e umidità in una o più navi da crociera, con più ponti e cabine.
 
