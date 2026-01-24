@@ -6,11 +6,11 @@ import misurazione
 if __name__ == "__main__":
 
     # Apertura di parametri.conf in lettura
-    with open('configurazionedc.conf', 'r') as file:
+    with open('../DA/parametri.conf', 'r') as file:
         dati = json.load(file)
 
     # variabili
-    rilevazione = 0
+    rilevazione = 1
     umiditaMedia = 0
     temperaturaMedia = 0
 
@@ -48,7 +48,8 @@ if __name__ == "__main__":
             json_file_dbt.close()
         except KeyboardInterrupt as e:
             print("Interruzione del salvataggio dei dati")
-            print("Rilevazioni effettuate: ", rilevazione)
+            #per motivi tecnici il valore "rilevazione" è sballato in eccesso di 1, quindi quel 1 in eccesso viene sottratto alla stampa 
+            print("Rilevazioni effettuate: ", rilevazione-1)
             print("Media umidita: ", round(umiditaMedia/rilevazione, dati['N_DECIMALI']))
             print("Media temperatura: ", round(temperaturaMedia/rilevazione, dati['N_DECIMALI']))
             break
