@@ -42,10 +42,23 @@ if __name__ == "__main__":
             JSON = {
                 "cabina": datiDC['cabina'],
                 "ponte": datiDC['ponte'],
-                "rilevazione": rilevazione,
-                "dataeora": datetime.datetime.now().timestamp(),
-                "temperatura": temperatura,
-                "umidita": umidita
+                "sensore":
+                {
+                    "nome":"DHT11",
+                    "tmin":0,
+                    "tmax":40,
+                    "umin":20,
+                    "umax":90,
+                    "erroret":2,
+                    "erroreu":4
+                },
+                "identita":"DC001-01",
+                "osservazione":
+                {
+                    "rilevazione": rilevazione,
+                    "temperatura": temperatura,
+                    "umidita": umidita
+                },
             }
 
             # stampa leggibile dei dati estrapolati
