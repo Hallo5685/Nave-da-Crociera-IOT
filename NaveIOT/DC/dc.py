@@ -14,7 +14,7 @@ if __name__ == "__main__":
     umiditaMedia = 0
     temperaturaMedia = 0
 
-    # Apertura di parametri.conf in lettura
+    # Apertura di configurazionedc.conf in lettura
     with open('NaveIOT/DC/configurazionedc.conf', 'r') as file:
         datiDC = json.load(file)
 
@@ -26,7 +26,11 @@ if __name__ == "__main__":
             client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client.connect((HOST, PORT))
 
-            # Apertura di parametri.conf in scrittura
+            readSocket = client.recv(4096)
+            # bytes → stringa → dict
+            datiDA = json.loads(readSocket.decode('utf-8'))  
+
+            # Apertura di iotdata.dbt in scrittura
             json_file_dbt = open('NaveIOT/IOTp/iotdata.dbt', 'a', encoding='utf-8')
 
             temperatura = misurazione.on_temperatura(datiDA['N_DECIMALI'])
