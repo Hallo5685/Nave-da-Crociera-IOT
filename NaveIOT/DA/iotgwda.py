@@ -1,6 +1,7 @@
 import socket
 import json
 import time
+import datetime
 
 if __name__ == "__main__":
     
@@ -50,7 +51,7 @@ if __name__ == "__main__":
                             "ponte": data_json['ponte'],
                             "temperatura_media": round(temperat_media/data_json['osservazione']['rilevazione'] , datiDA['N_DECIMALI']),
                             "umidita_media": round(umidita_media/data_json['osservazione']['rilevazione'] , datiDA['N_DECIMALI']),
-                            "data_ora": data_json['osservazione']['data_ora'],
+                            "data_ora": datetime.datetime.now().timestamp(),
                             "identita_giot": datiDA['IDENTITA_GIOT'],
                            }
 
