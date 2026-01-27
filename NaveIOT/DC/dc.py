@@ -4,11 +4,6 @@ import misurazione
 import socket
 
 if __name__ == "__main__":
-    
-    #definizione costanti
-    HOST = '127.0.0.1' 
-    PORT = 9999
-
     #definizione variabili
     rilevazione = 1
     umiditaMedia = 0
