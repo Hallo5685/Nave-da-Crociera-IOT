@@ -5,17 +5,18 @@ import misurazione
 import socket
 
 if __name__ == "__main__":
-    # variabili costanti
+    
+    #definizione costanti
     HOST = '127.0.0.1' 
     PORT = 9999
 
-    # variabili
+    #definizione variabili
     rilevazione = 1
     umiditaMedia = 0
     temperaturaMedia = 0
 
     # Apertura di configurazionedc.conf in lettura
-    with open('NaveIOT/DC/configurazionedc.conf', 'r') as file:
+    with open("configurazionedc.conf", 'r') as file:
         datiDC = json.load(file)
 
     # Ciclo di estrazione dei dati e di scrittura in file iotdata.dbt in formato JSON
@@ -31,7 +32,7 @@ if __name__ == "__main__":
             datiDA = json.loads(readSocket.decode('utf-8'))  
 
             # Apertura di iotdata.dbt in scrittura
-            json_file_dbt = open('NaveIOT/IOTp/iotdata.dbt', 'a', encoding='utf-8')
+            json_file_dbt = open('../IOTp/iotdata.dbt', 'a', encoding='utf-8')
 
             temperatura = misurazione.on_temperatura(datiDA['N_DECIMALI'])
             umidita = misurazione.on_umidita(datiDA['N_DECIMALI'])

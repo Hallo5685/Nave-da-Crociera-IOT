@@ -2,7 +2,8 @@ import socket
 import json
 
 if __name__ == "__main__":
-    # variabili costanti
+    
+    #definizione costanti
     HOST = '127.0.0.1' 
     PORT = 9999
 
