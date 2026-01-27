@@ -24,7 +24,7 @@ if __name__ == "__main__":
         try:
 
             client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.connect((HOST, PORT))
+            client.connect((datiDC['IPServer'], datiDC['portaServer']))
 
             readSocket = client.recv(4096)
             # bytes → stringa → dict
