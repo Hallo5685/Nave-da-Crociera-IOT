@@ -29,10 +29,7 @@ if __name__ == "__main__":
 
             readSocket = client.recv(4096)
             # bytes → stringa → dict
-            datiDA = json.loads(readSocket.decode('utf-8'))  
-
-            # Apertura di iotdata.dbt in scrittura
-            json_file_dbt = open('../IOTp/iotdata.dbt', 'a', encoding='utf-8')
+            datiDA = json.loads(readSocket.decode('utf-8'))
 
             temperatura = misurazione.on_temperatura(datiDA['N_DECIMALI'])
             umidita = misurazione.on_umidita(datiDA['N_DECIMALI'])
@@ -63,15 +60,13 @@ if __name__ == "__main__":
             }
 
             # stampa leggibile dei dati estrapolati
-            print(json.dumps(JSON, indent=4))
+            # print(json.dumps(JSON, indent=4))
 
-            # salvataggio nel file iotdata.dbt
-            json.dump(JSON, json_file_dbt)
-            json_file_dbt.write(", \n")
+            dati_bytes = json.dumps(JSON).encode('utf-8')
+            client.sendall(dati_bytes)
 
             rilevazione += 1
             time.sleep(datiDA['TEMPO_RILEVAZIONE'])
-            json_file_dbt.close()
         except KeyboardInterrupt as e:
             client.close()
             print("Interruzione del salvataggio dei dati")

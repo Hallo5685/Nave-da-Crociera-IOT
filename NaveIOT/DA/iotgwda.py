@@ -25,6 +25,8 @@ if __name__ == "__main__":
             print(f"Connessione da {addr}")
 
             conn.sendall(dati_bytes)
+            readSocket = conn.recv(4096)
+            # print(readSocket)
             conn.close()
         except KeyboardInterrupt as e:
             break
