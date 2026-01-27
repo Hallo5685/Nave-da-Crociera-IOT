@@ -1,5 +1,0 @@
-
-{"cabina": 1, "ponte": 1, "sensore": {"nome": "DHT11", "tmin": 0, "tmax": 40, "umin": 20, "umax": 90, "erroret": 2, "erroreu": 4}, "identita": "DC001-01", "osservazione": {"rilevazione": 1, "temperatura": 30.32, "umidita": 24.21}}, 
-{"cabina": 1, "ponte": 1, "sensore": {"nome": "DHT11", "tmin": 0, "tmax": 40, "umin": 20, "umax": 90, "erroret": 2, "erroreu": 4}, "identita": "DC001-01", "osservazione": {"rilevazione": 2, "temperatura": 32.05, "umidita": 49.21}}, 
-{"cabina": 1, "ponte": 1, "sensore": {"nome": "DHT11", "tmin": 0, "tmax": 40, "umin": 20, "umax": 90, "erroret": 2, "erroreu": 4}, "identita": "DC001-01", "osservazione": {"rilevazione": 3, "temperatura": 25.57, "umidita": 47.6}}, 
-{"cabina": 1, "ponte": 1, "sensore": {"nome": "DHT11", "tmin": 0, "tmax": 40, "umin": 20, "umax": 90, "erroret": 2, "erroreu": 4}, "identita": "DC001-01", "osservazione": {"rilevazione": 4, "temperatura": 10.19, "umidita": 40.98}}, 
