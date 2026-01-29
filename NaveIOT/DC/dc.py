@@ -18,13 +18,15 @@ if __name__ == "__main__":
 
         try:
 
+            # Creazione del client socket
             client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client.connect((datiDC['IPServer'], datiDC['portaServer']))
 
             readSocket = client.recv(4096)
-            # bytes → stringa → dict
+            # Converte il bytes letti in stringa
             datiDA = json.loads(readSocket.decode('utf-8'))
 
+            # Prende dal file misurazione.py i dati relativi alla temperatura e dell'umidita
             temperatura = misurazione.on_temperatura(datiDA['N_DECIMALI'])
             umidita = misurazione.on_umidita(datiDA['N_DECIMALI'])
 
@@ -52,9 +54,6 @@ if __name__ == "__main__":
                     "umidita": umidita
                 },
             }
-
-            # stampa leggibile dei dati estrapolati
-            # print(json.dumps(JSON, indent=4))
 
             dati_bytes = json.dumps(JSON).encode('utf-8')
             client.sendall(dati_bytes)

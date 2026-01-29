@@ -2,7 +2,7 @@ import socket
 import json
 import time
 import datetime
-import crypto as crypto#importa il modulo di "crittografia"
+import crypto as crypto
 
 if __name__ == "__main__":
     
@@ -14,7 +14,7 @@ if __name__ == "__main__":
     with open('parametri.conf', 'r') as file:
         datiDA = json.load(file)
 
-    # Trasformo stringa → bytes
+    # Converte la stringa in bytes
     dati_bytes = json.dumps(datiDA).encode('utf-8')
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
             #ricezione dei dati dal client
             data_bites = conn.recv(4096)
-            # bytes → stringa → dict
+            # Converte il bytes letti in stringa
             data_json = json.loads(data_bites.decode('utf-8'))
             print("Dati ricevuti dal client:")
 
@@ -67,7 +67,7 @@ if __name__ == "__main__":
             #apertura del file iotdata.dbt in append
             with open ("../IOTp/iotdata.dbt", 'a', encoding='utf-8') as file:
                 #scrittura dei dati ricevuti nel file iotdata.dbt
-                file.write(json_string_cryptato+ ', \n')
+                file.write(json_string_cryptato + ', \n')
 
             #chiusura connessione
             conn.close()
