@@ -2,6 +2,7 @@ import socket
 import json
 import time
 import datetime
+import crypto as crypto#importa il modulo di "crittografia"
 
 if __name__ == "__main__":
     
@@ -55,8 +56,10 @@ if __name__ == "__main__":
                             "identita_giot": datiDA['IDENTITA_GIOT'],
                            }
 
-            #conversione in stringa json
+            #conversione in stringa
             json_string = json.dumps(json_iotPlatform , ensure_ascii=False)
+            #criptazione della json string
+            json_string_cryptato = crypto.criptazione(json_string)
 
             #ritardo dell'invio successivo
             time.sleep(datiDA['TEMPO_INVIO'])
@@ -64,10 +67,11 @@ if __name__ == "__main__":
             #apertura del file iotdata.dbt in append
             with open ("../IOTp/iotdata.dbt", 'a', encoding='utf-8') as file:
                 #scrittura dei dati ricevuti nel file iotdata.dbt
-                file.write(json_string+ ', \n')
+                file.write(json_string_cryptato+ ', \n')
 
             #chiusura connessione
             conn.close()
         except KeyboardInterrupt as e:
+            print("Numero di rilevazioni inviate: ", data_json['osservazione']['rilevazione'])
             break
     
