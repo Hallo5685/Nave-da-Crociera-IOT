@@ -1,3 +1,4 @@
+from machine import Pin
 import json
 import time
 import misurazione
@@ -8,34 +9,37 @@ if __name__ == "__main__":
     rilevazione = 1
     umiditaMedia = 0
     temperaturaMedia = 0
+    led = Pin(15, Pin.OUT)  # Usa GP15 come output
 
     # Apertura di configurazionedc.conf in lettura
     with open("configurazionedc.conf", 'r') as file:
-        datiDC = json.load(file)
+        datiConfigurazioneDC = json.load(file)
+
+    with open("da.json", 'r') as file:
+        datiConnessioneServer = json.load(file)
 
     # Ciclo di estrazione dei dati e di scrittura in file iotdata.dbt in formato JSON
     while True:
 
         try:
-
             # Creazione del client socket
             client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.connect((datiDC['IPServer'], datiDC['portaServer']))
+            client.connect((datiConnessioneServer['IP'], datiConnessioneServer['porta']))
 
+            led.value(1)    # Accendi il LED
             readSocket = client.recv(4096)
             # Converte il bytes letti in stringa
             datiDA = json.loads(readSocket.decode('utf-8'))
 
             # Prende dal file misurazione.py i dati relativi alla temperatura e dell'umidita
-            temperatura = misurazione.on_temperatura(datiDA['N_DECIMALI'])
-            umidita = misurazione.on_umidita(datiDA['N_DECIMALI'])
+            temperatura, umidita = misurazione.leggi_temp(datiDA['N_DECIMALI'])
 
             umiditaMedia += umidita
             temperaturaMedia += temperatura
 
             JSON = {
-                "cabina": datiDC['cabina'],
-                "ponte": datiDC['ponte'],
+                "cabina": datiConfigurazioneDC['cabina'],
+                "ponte": datiConfigurazioneDC['ponte'],
                 "sensore":
                 {
                     "nome":"DHT11",
@@ -61,6 +65,7 @@ if __name__ == "__main__":
             rilevazione += 1
             time.sleep(datiDA['TEMPO_RILEVAZIONE'])
         except KeyboardInterrupt as e:
+            led.value(0)    # Spegni il LED
             client.close()
             print("Interruzione del salvataggio dei dati")
             #per motivi tecnici il valore "rilevazione" è sballato in eccesso di 1, quindi quel 1 in eccesso viene sottratto alla stampa 

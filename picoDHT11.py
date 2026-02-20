@@ -12,7 +12,7 @@ import dht
 # Funzioni
 #
 def leggi_temp(N_PIN): 
-    #
+    
     sensor = dht.DHT11(Pin(N_PIN))      # Sensore celeste
     #sensor = dht.DHT22(Pin(N_PIN))     # Sensore bianco
     #

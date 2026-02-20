@@ -12,6 +12,8 @@
         "erroreu":4
     },
     "identita":"DC001-01",
-    "IPServer":"127.0.0.1",
-    "portaServer":9999
+    "cablaggio": {
+        "segnale": 0,
+        "gnd": 38
+    }
 }

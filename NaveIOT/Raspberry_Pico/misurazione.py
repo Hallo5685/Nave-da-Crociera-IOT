@@ -1,10 +1,33 @@
-import random
+# Gestione sensore temperatura e umidità
+# DHT11 (celeste) o DHT22 (bianco)
+# Raspberry Pico WH
+# Utilizzo libreria dht
+#
+# Script: pico3.py
+#
+import time
+from machine import Pin
+import dht 
+#
+# Funzioni
+#
+def leggi_temp(decimale): 
+    
+    PIN_SEGNALE = 0
 
-# Simulazione sensore temperatura, da 10 a 40 gradi
-def on_temperatura(N):
-    TEMP = round(random.uniform(10,40), N)
-    return TEMP
-# Simulazione sensore umidità, da 20 a 90 gradi
-def on_umidita(N):
-    UMID = round(random.uniform(20,90), N)
-    return UMID
+    sensor = dht.DHT11(Pin(PIN_SEGNALE))      # Sensore celeste
+    #sensor = dht.DHT22(Pin(N_PIN))     # Sensore bianco
+    #
+    try:
+        sensor.measure()
+        datoMisurato = sensor.temperature()
+        temp = f"{datoMisurato:.{decimale}f}"
+        hum = sensor.humidity()
+        hum = f"{datoMisurato:.{decimale}f}"
+    
+    except OSError as e:
+        print('Problemi con il sensore...')
+    
+    TEMP = temp
+    UMI  = hum
+    return TEMP,UMI

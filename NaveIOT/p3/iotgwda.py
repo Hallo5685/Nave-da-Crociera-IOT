@@ -11,7 +11,7 @@ if __name__ == "__main__":
     umidita_media = 0
 
     # Apertura di parametri.conf in lettura
-    with open('parametri.conf', 'r') as file:
+    with open('/configurazione/parametri.conf', 'r') as file:
         datiDA = json.load(file)
 
     # Converte la stringa in bytes
@@ -65,7 +65,7 @@ if __name__ == "__main__":
             time.sleep(datiDA['TEMPO_INVIO'])
 
             #apertura del file iotdata.dbt in append
-            with open ("../IOTp/iotdata.dbt", 'a', encoding='utf-8') as file:
+            with open ("iotp/db.json", 'a', encoding='utf-8') as file:
                 #scrittura dei dati ricevuti nel file iotdata.dbt
                 file.write(json_string_cryptato + ', \n')
 
