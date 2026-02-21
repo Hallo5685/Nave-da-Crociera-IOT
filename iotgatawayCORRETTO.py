@@ -46,19 +46,16 @@ if __name__ == "__main__":
             temperat_media += temperatura
             umidita_media += umidita
 
-            temperatura_media = round(temperat_media / rilevazione, datiDA['N_DECIMALI'])
-            umidita_media_val = round(umidita_media / rilevazione, datiDA['N_DECIMALI'])
-
             # Costruzione JSON come nella foto
             json_iotPlatform = {
-                "invionumero": rilevazione,
+                "invionumero": data_json['osservazione']['rilevazione'],
                 "cabina": data_json['cabina'],
                 "ponte": data_json['ponte'],
-                "temperaturam": temperatura_media,
-                "umiditam": umidita_media_val,
-                "dataeora": datetime.datetime.now().timestamp(),
-                "identita": datiDA['IDENTITA_GIOT'],
-                "dc": datiDA['DC']  # Assicurati che esista in parametri.conf
+                "temperatura_media": round(temperat_media/data_json['osservazione']['rilevazione'] , datiDA['N_DECIMALI']),
+                "umidita_media": round(umidita_media/data_json['osservazione']['rilevazione'] , datiDA['N_DECIMALI']),
+                "data_ora": datetime.datetime.now().timestamp(),
+                "identita_giot": datiDA['IDENTITA_GIOT'],
+                "dc": datiDA['DC']
             }
 
             # Conversione in stringa
