@@ -3,6 +3,9 @@ import json
 import time
 import misurazione
 import socket
+import picowifi
+import network
+import rp2
 
 if __name__ == "__main__":
     #definizione variabili
@@ -18,6 +21,23 @@ if __name__ == "__main__":
     with open("da.json", 'r') as file:
         datiConnessioneServer = json.load(file)
 
+    ATTESA = 10
+    TEMPO_PAUSA = 1
+
+    SSID, PASW = picowifi.Parametri_WiFi()
+
+    rp2.country('IT')
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+
+    # assegno wlan al modulo picowifi
+    picowifi.wlan = wlan
+
+    picowifi.Powersaving('NO')
+    picowifi.Info_WiFi()
+    picowifi.Connessione_WiFi(ATTESA, SSID, PASW, TEMPO_PAUSA)
+
+    print("WiFi connesso. Avvio comunicazione con server...")
     # Ciclo di estrazione dei dati e di scrittura in file iotdata.dbt in formato JSON
     while True:
 
