@@ -11,7 +11,7 @@ if __name__ == "__main__":
     umidita_media = 0
 
     # Apertura di parametri.conf in lettura
-    with open('/configurazione/parametri.conf', 'r') as file:
+    with open('configurazione/parametri.conf', 'r') as file:
         datiDA = json.load(file)
 
     # Converte la stringa in bytes
