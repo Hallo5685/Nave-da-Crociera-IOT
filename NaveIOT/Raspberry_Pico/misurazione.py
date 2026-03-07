@@ -2,15 +2,15 @@
 # DHT11 (celeste) o DHT22 (bianco)
 # Raspberry Pico WH
 # Utilizzo libreria dht
-#
+
 # Script: pico3.py
-#
+
 import time
 from machine import Pin
 import dht 
-#
+
 # Funzioni
-#
+
 def leggi_temp(decimale): 
     
     # definizione pin collegato al segnale del sensore

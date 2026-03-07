@@ -8,33 +8,35 @@ import network
 import rp2
 
 if __name__ == "__main__":
-    # definizione variabili principali
-    rilevazione = 1
-    umiditaMedia = 0
-    temperaturaMedia = 0
-    led = Pin(15, Pin.OUT)  # Usa GP15 come output per il LED di stato
 
-    # Apertura di configurazionedc.conf in lettura (parametri cabina e ponte)
+    # variabili principali
+    numeroRilevazione = 1
+    sommaUmidita = 0
+    sommaTemperatura = 0
+    ledStato = Pin(15, Pin.OUT)
+
+    # lettura configurazione cabina e ponte
     with open("configurazionedc.conf", 'r') as file:
-        datiConfigurazioneDC = json.load(file)
+        configurazioneDispositivo = json.load(file)
 
-    # Apertura file da.json in lettura (parametri connessione server)
+    # lettura parametri di connessione al server
     with open("da.json", 'r') as file:
-        datiConnessioneServer = json.load(file)
+        parametriServer = json.load(file)
 
     # tempi di attesa per la connessione WiFi
-    ATTESA = 10
-    TEMPO_PAUSA = 1
+    tempoAttesaConnessione = 10
+    tempoPausaConnessione = 1
 
     # recupero SSID e password dal modulo picowifi
-    SSID, PASW = picowifi.Parametri_WiFi()
+    ssidWifi, passwordWifi = picowifi.Parametri_WiFi()
 
-    # imposto il paese per la regolamentazione WiFi
+    # impostazione paese per regolamentazione WiFi
     rp2.country('IT')
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)  # attiva la modalità station
 
-    # assegno wlan al modulo picowifi per poterlo usare nelle funzioni
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+
+    # assegno wlan al modulo picowifi
     picowifi.wlan = wlan
 
     # disattivo powersaving per maggiore stabilità
@@ -44,83 +46,103 @@ if __name__ == "__main__":
     picowifi.Info_WiFi()
 
     # connessione alla rete WiFi
-    picowifi.Connessione_WiFi(ATTESA, SSID, PASW, TEMPO_PAUSA)
+    picowifi.Connessione_WiFi(
+        tempoAttesaConnessione,
+        ssidWifi,
+        passwordWifi,
+        tempoPausaConnessione
+    )
 
     print("WiFi connesso. Avvio comunicazione con server...")
-    
-    # Ciclo infinito di estrazione dei dati e invio al server
+
+    # ciclo infinito di invio dati al server
     while True:
 
         try:
-            # Creazione del client socket TCP
-            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # creazione socket client TCP
+            clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-            # Connessione al server tramite IP e porta letti dal file
-            client.connect((datiConnessioneServer['IP'], datiConnessioneServer['porta']))
+            # connessione al server
+            clientSocket.connect((parametriServer['IP'], parametriServer['porta']))
 
-            led.value(1)    # Accendi il LED quando la comunicazione è attiva
+            ledStato.value(1)
 
-            # Ricezione dati dal server (massimo 4096 byte)
-            readSocket = client.recv(4096)
+            # ricezione parametri dal server
+            datiRicevutiSocket = clientSocket.recv(4096)
 
-            # Converte i bytes letti in stringa e poi in dizionario JSON
-            datiDA = json.loads(readSocket.decode('utf-8'))
+            # conversione bytes → JSON
+            parametriRicevutiServer = json.loads(datiRicevutiSocket.decode('utf-8'))
 
-            # Prende dal file misurazione.py i dati relativi alla temperatura e dell'umidita
-            # il numero di decimali viene deciso dal server
-            temperatura, umidita = misurazione.leggi_temp(datiDA['N_DECIMALI'])
+            # lettura temperatura e umidità dal sensore
+            temperatura, umidita = misurazione.leggi_temp(
+                parametriRicevutiServer['N_DECIMALI']
+            )
 
-            # somma progressiva per il calcolo della media finale
-            umiditaMedia += umidita
-            temperaturaMedia += temperatura
+            # aggiornamento somme per calcolo media finale
+            sommaUmidita += umidita
+            sommaTemperatura += temperatura
 
-            # Creazione struttura JSON da inviare al server
-            JSON = {
-                "cabina": datiConfigurazioneDC['cabina'],
-                "ponte": datiConfigurazioneDC['ponte'],
-                "sensore":
-                {
-                    "nome":"DHT11",
-                    "tmin":0,
-                    "tmax":40,
-                    "umin":20,
-                    "umax":90,
-                    "erroret":2,
-                    "erroreu":4
+            # creazione JSON da inviare al server
+            jsonDaInviare = {
+
+                "cabina": configurazioneDispositivo['cabina'],
+
+                "ponte": configurazioneDispositivo['ponte'],
+
+                "sensore": {
+                    "nome": "DHT11",
+                    "tmin": 0,
+                    "tmax": 40,
+                    "umin": 20,
+                    "umax": 90,
+                    "erroret": 2,
+                    "erroreu": 4
                 },
-                "identita":"DC001-01",
-                "osservazione":
-                {
-                    "rilevazione": rilevazione,
+
+                "identita": "DC001-01",
+
+                "osservazione": {
+                    "rilevazione": numeroRilevazione,
                     "temperatura": temperatura,
                     "umidita": umidita
-                },
+                }
             }
 
-            # Conversione del dizionario in bytes JSON
-            dati_bytes = json.dumps(JSON).encode('utf-8')
+            print(json.dumps(jsonDaInviare, indent=4))
 
-            # Invio dei dati al server
-            client.sendall(dati_bytes)
+            # conversione JSON → bytes
+            jsonBytes = json.dumps(jsonDaInviare).encode('utf-8')
+
+            # invio dati al server
+            clientSocket.sendall(jsonBytes)
 
             # incremento contatore rilevazioni
-            rilevazione += 1
+            numeroRilevazione += 1
 
-            # attesa prima della prossima rilevazione (tempo deciso dal server)
-            time.sleep(datiDA['TEMPO_RILEVAZIONE'])
+            # attesa prima della prossima rilevazione
+            time.sleep(parametriRicevutiServer['TEMPO_RILEVAZIONE'])
 
-        except KeyboardInterrupt as e:
-            led.value(0)    # Spegni il LED in caso di interruzione manuale
-            client.close()  # chiusura della connessione socket
+        except KeyboardInterrupt:
+
+            ledStato.value(0)
+            clientSocket.close()
+
             print("Interruzione del salvataggio dei dati")
 
-            # per motivi tecnici il valore "rilevazione" è sballato in eccesso di 1,
-            # quindi quel 1 in eccesso viene sottratto alla stampa 
-            print("Rilevazioni effettuate: ", rilevazione-1)
+            print("Rilevazioni effettuate:", numeroRilevazione - 1)
 
-            # calcolo e stampa delle medie finali
-            print("Media umidita: ", round(umiditaMedia/rilevazione, datiDA['N_DECIMALI']))
-            print("Media temperatura: ", round(temperaturaMedia/rilevazione, datiDA['N_DECIMALI']))
+            print(
+                "Media umidita:",
+                round(sommaUmidita / numeroRilevazione,
+                parametriRicevutiServer['N_DECIMALI'])
+            )
+
+            print(
+                "Media temperatura:",
+                round(sommaTemperatura / numeroRilevazione,
+                parametriRicevutiServer['N_DECIMALI'])
+            )
+
             break
 
     print("Salvataggio dei dati sui file completato.")
