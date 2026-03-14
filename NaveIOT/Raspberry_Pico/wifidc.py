@@ -13,7 +13,7 @@ import time
 #
 def Parametri_WiFi():
     import json
-    with open('wifipico.conf', 'r') as file:
+    with open('wifipico.json', 'r') as file:
         credenziali = json.load(file)
         ssid = credenziali["ssid"]
         pasw = credenziali["pw"]
@@ -121,8 +121,6 @@ def Info_WiFi():
     print (wlan.scan())
     print()
     return
-# 
-# 
 # Main
 #
 ATTESA = 10
