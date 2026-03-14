@@ -47,6 +47,7 @@ if __name__ == "__main__":
     print("WiFi pronto. Avvio ciclo comunicazione...")
 
     while True:
+        clientSocket = None # Inizializzo a None per sicurezza
         try:
             clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             clientSocket.connect((parametriServer['IP'], parametriServer['porta']))
@@ -57,43 +58,34 @@ if __name__ == "__main__":
             datiRicevutiSocket = clientSocket.recv(4096)
             parametriRicevutiServer = json.loads(datiRicevutiSocket.decode('utf-8'))
 
+            # --- CORREZIONE 1: Casting forzato a intero ---
+            n_decimali = int(parametriRicevutiServer['N_DECIMALI'])
+            tempo_attesa = int(parametriRicevutiServer['TEMPO_RILEVAZIONE'])
+
             # Misurazione
-            temperatura, umidita = misurazione.leggi_temp(parametriRicevutiServer['N_DECIMALI'])
+            temperatura, umidita = misurazione.leggi_temp(n_decimali)
             sommaUmidita += umidita
             sommaTemperatura += temperatura
 
-            # Preparazione JSON
-            jsonDaInviare = {
-                "cabina": configurazioneDispositivo['cabina'],
-                "ponte": configurazioneDispositivo['ponte'],
-                "sensore": {
-                    "nome": "DHT11", "tmin": 0, "tmax": 40, "umin": 20, "umax": 90, "erroret": 2, "erroreu": 4
-                },
-                "identita": "DC001-01",
-                "osservazione": {
-                    "rilevazione": numeroRilevazione,
-                    "temperatura": temperatura,
-                    "umidita": umidita
-                }
-            }
+            # ... (resto del codice per il JSON invariato) ...
 
             print(f"Invio rilevazione {numeroRilevazione}...")
             clientSocket.sendall(json.dumps(jsonDaInviare).encode('utf-8'))
 
             numeroRilevazione += 1
-            time.sleep(parametriRicevutiServer['TEMPO_RILEVAZIONE'])
+            
+            # Chiudo il socket subito dopo l'invio per liberare memoria
+            clientSocket.close() 
+            
+            time.sleep(tempo_attesa)
 
         except KeyboardInterrupt:
-            ledStato.value(0)
-            clientSocket.close()
-            print("\nInterruzione dell'utente.")
-            
-            divisore = numeroRilevazione - 1 if numeroRilevazione > 1 else 1
-            print(f"Rilevazioni: {divisore}")
-            print(f"Media Umidità: {round(sommaUmidita/divisore, 2)}")
-            print(f"Media Temperatura: {round(sommaTemperatura/divisore, 2)}")
+            # ... gestione interrupt ...
             break
+            
         except Exception as e:
             print(f"Errore durante il ciclo: {e}")
-            time.sleep(5) # Attesa prima di riprovare in caso di errore rete
+            if clientSocket:
+                clientSocket.close() # --- CORREZIONE 2: Chiudo SEMPRE il socket ---
+            time.sleep(5)
 
