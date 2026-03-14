@@ -15,7 +15,7 @@ if __name__ == "__main__":
     ledStato = Pin(15, Pin.OUT)
 
     # 1. Lettura configurazioni
-    with open("configurazione.json", 'r') as file:
+    with open("configurazionedc.json", 'r') as file:
         configurazioneDispositivo = json.load(file)
 
     with open("da.json", 'r') as file:
@@ -96,3 +96,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Errore durante il ciclo: {e}")
             time.sleep(5) # Attesa prima di riprovare in caso di errore rete
+
