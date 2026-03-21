@@ -4,6 +4,21 @@ import time
 import datetime
 import crypto as crypto
 
+# invio al servizio di archiviazione che decritta e salva in dbplatform.json
+def invia_ad_archivia(dati_criptati, host="127.0.0.1", port=9091):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+            client_socket.connect((host, port))
+            client_socket.sendall(dati_criptati.encode('utf-8'))
+            risposta = client_socket.recv(1024).decode('utf-8')
+            print(f"Risposta archivia: {risposta}")
+    except ConnectionRefusedError:
+            print("Archivia non raggiungibile (ConnectionRefused)." )
+    except Exception as err:
+            print(f"Errore invio ad archivia: {err}")
+
+
+
 if __name__ == "__main__":
 
     # variabili per il calcolo delle medie
@@ -79,20 +94,15 @@ if __name__ == "__main__":
                 }
 
                 # conversione JSON formattato
-                jsonString = json.dumps(
-                    jsonDatabase,
-                    ensure_ascii=False,
-                    indent=4
-                )
+                jsonString = json.dumps(jsonDatabase,ensure_ascii=False,indent=4)
 
-                # criptazione
+                # criptazione del JSON formattato
                 jsonCriptato = crypto.criptazione(jsonString)
 
-                # salvataggio nel file
-                with open("iotp/db.json", "a", encoding="utf-8") as file:
-                    file.write(jsonCriptato + "\n")
+                #Fmetodo che invia a artchivia_iotp.py i dati
+                invia_ad_archivia(jsonCriptato)
 
-                print("Dati salvati nel DB")
+                print("Dati salvati nel DB locale e inoltrati ad archivia")
 
                 # reset delle variabili per il prossimo intervallo
                 temperaturaTotale = 0
