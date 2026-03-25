@@ -3,20 +3,7 @@ import json
 import time
 import datetime
 import crypto as crypto
-
-# invio al servizio di archiviazione che decritta e salva in dbplatform.json
-def invia_ad_archivia(dati_criptati, host="127.0.0.1", port=9091):
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-            client_socket.connect((host, port))
-            client_socket.sendall(dati_criptati.encode('utf-8'))
-            risposta = client_socket.recv(1024).decode('utf-8')
-            print(f"Risposta archivia: {risposta}")
-    except ConnectionRefusedError:
-            print("Archivia non raggiungibile (ConnectionRefused)." )
-    except Exception as err:
-            print(f"Errore invio ad archivia: {err}")
-
+import paho.mqtt.publish as publish
 
 
 if __name__ == "__main__":
@@ -26,17 +13,17 @@ if __name__ == "__main__":
     umiditaTotale = 0
     numeroMisurazioni = 0
 
-    # timer per l'invio dei dati al database
+    # timer per l'invio dei dati
     ultimoInvioDatabase = time.time()
 
-    # lettura parametri di configurazione del server
+    # lettura parametri di configurazione
     with open('configurazione/parametri.conf', 'r') as file:
         parametriServer = json.load(file)
 
     # conversione dei parametri in bytes per inviarli al client
     parametriServerBytes = json.dumps(parametriServer).encode('utf-8')
 
-    # creazione del server TCP
+    # creazione del server TCP (rimane per ricevere dai sensori)
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serverSocket.bind((parametriServer['IP_SERVER'], parametriServer['PORTA_SERVER']))
     serverSocket.listen(5)
@@ -45,7 +32,6 @@ if __name__ == "__main__":
 
     while True:
         try:
-
             connessioneClient, indirizzoClient = serverSocket.accept()
             print(f"Connessione da {indirizzoClient}")
 
@@ -58,18 +44,18 @@ if __name__ == "__main__":
 
             print("Dati ricevuti dal client:", datiRicevutiJson)
 
-            # estrazione valori di temperatura e umidità
+            # estrazione valori
             temperatura = datiRicevutiJson['osservazione']['temperatura']
             umidita = datiRicevutiJson['osservazione']['umidita']
 
-            # aggiornamento somme per il calcolo della media
+            # aggiornamento somme
             temperaturaTotale += temperatura
             umiditaTotale += umidita
             numeroMisurazioni += 1
 
             connessioneClient.close()
 
-            # controllo se è arrivato il momento di salvare i dati
+            # controllo invio
             if time.time() - ultimoInvioDatabase >= parametriServer['TEMPO_INVIO'] and numeroMisurazioni > 0:
 
                 temperaturaMedia = round(
@@ -82,34 +68,43 @@ if __name__ == "__main__":
                     parametriServer['N_DECIMALI']
                 )
 
-                # JSON da salvare nel database
+                # JSON finale
                 jsonDatabase = {
-                    "invioNumero": numeroMisurazioni,
                     "cabina": datiRicevutiJson['cabina'],
                     "ponte": datiRicevutiJson['ponte'],
-                    "temperaturaMedia": temperaturaMedia,
-                    "umiditaMedia": umiditaMedia,
-                    "dataOra": datetime.datetime.now().timestamp(),
-                    "identitaGiot": parametriServer['IDENTITA_GIOT']
+                    "temperaturam": temperaturaMedia,
+                    "umiditam": umiditaMedia,
+                    "dataeora": datetime.datetime.now().timestamp(),
+                    "invionumero": numeroMisurazioni,
+                    "identita": parametriServer['IDENTITA_GIOT']
                 }
 
-                # conversione JSON formattato
-                jsonString = json.dumps(jsonDatabase,ensure_ascii=False,indent=4)
+                # conversione JSON
+                jsonString = json.dumps(jsonDatabase, ensure_ascii=False, indent=4)
 
-                # criptazione del JSON formattato
+                # criptazione (simulata)
                 jsonCriptato = crypto.criptazione(jsonString)
 
-                #Fmetodo che invia a artchivia_iotp.py i dati
-                invia_ad_archivia(jsonCriptato)
+                # ---------------- MQTT PUBLISH ----------------
+                try:
+                    publish.single(
+                        topic=parametriServer["TOPIC"],
+                        payload=jsonCriptato,
+                        hostname=parametriServer["BROKER"],
+                        port=parametriServer["PORTA_BROKER"]
+                    )
+                    print("Dati pubblicati su MQTT")
+                except Exception as err:
+                    print(f"Errore MQTT: {err}")
+                # ------------------------------------------------
 
-                print("Dati salvati nel DB locale e inoltrati ad archivia")
+                print("Dati inviati tramite MQTT")
 
-                # reset delle variabili per il prossimo intervallo
+                # reset variabili
                 temperaturaTotale = 0
                 umiditaTotale = 0
                 numeroMisurazioni = 0
 
-                # reset timer invio
                 ultimoInvioDatabase = time.time()
 
         except KeyboardInterrupt:
