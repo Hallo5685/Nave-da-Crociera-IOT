@@ -12,4 +12,4 @@ while True:
     messaggio = "ACCENDI_LED"
     client.publish(topic, messaggio)
     print(f"Inviato: {messaggio}")
-    time.sleep(5) # Invia ogni 5 secondi
+    time.sleep(3) # Invia ogni 3 secondi
