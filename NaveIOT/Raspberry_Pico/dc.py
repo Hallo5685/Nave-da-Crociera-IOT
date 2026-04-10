@@ -1,91 +1,135 @@
 from machine import Pin
 import json
 import time
-import misurazione
 import socket
-import wifidc 
 import network
 import rp2
+import misurazione
+import wifidc
 
-if __name__ == "__main__":
-    # Variabili principali
-    numeroRilevazione = 1
-    sommaUmidita = 0
-    sommaTemperatura = 0
-    ledStato = Pin(15, Pin.OUT)
 
-    # 1. Lettura configurazioni
-    with open("configurazionedc.json", 'r') as file:
-        configurazioneDispositivo = json.load(file)
+DEFAULT_N_DECIMALI = 2
+DEFAULT_TEMPO_RILEVAZIONE = 5
+TEMPO_ATTESA_WIFI = 10
+TEMPO_PAUSA_WIFI = 1
+TEMPO_RITENTA_ERRORE = 5
+BUFFER_SIZE = 4096
 
-    with open("da.json", 'r') as file:
-        parametriServer = json.load(file)
 
-    # 2. Inizializzazione Hardware WiFi (Fondamentale farlo PRIMA delle funzioni del modulo)
-    rp2.country('IT')
+def carica_json(nome_file):
+    with open(nome_file, "r") as file:
+        return json.load(file)
+
+
+def crea_led_interno():
+    try:
+        return Pin("LED", Pin.OUT)
+    except Exception:
+        return Pin(15, Pin.OUT)
+
+
+def misura_dati(n_decimali):
+    temperatura, umidita = misurazione.leggi_temp(n_decimali)
+    temperatura = round(float(temperatura), n_decimali)
+    umidita = round(float(umidita), n_decimali)
+    return temperatura, umidita
+
+
+def costruisci_iotdata(configurazione, numero_rilevazione, temperatura, umidita):
+    chiave_posizione = "camera" if "camera" in configurazione else "cabina"
+
+    dato = {
+        chiave_posizione: configurazione.get(chiave_posizione, 1),
+        "ponte": configurazione.get("ponte", 1),
+        "sensore": configurazione.get("sensore", {}),
+        "identita": configurazione.get("identita", "DC001-00001"),
+        "osservazione": {
+            "rilevazione": numero_rilevazione,
+            "temperatura": temperatura,
+            "umidita": umidita,
+            "dataeora": int(time.time()),
+        },
+    }
+    return dato
+
+
+def inizializza_wifi():
+    rp2.country("IT")
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
-    
-    # Passiamo l'oggetto wlan al modulo wifidc
     wifidc.wlan = wlan
 
-    # 3. Recupero credenziali e connessione
-    # Nota: nel tuo modulo la funzione si chiama Parametri_WiFi, non connetti_wifi
-    ssidWifi, passwordWifi = wifidc.Parametri_WiFi()
+    ssid_wifi, password_wifi = wifidc.Parametri_WiFi()
+    wifidc.Powersaving("NO")
+    wifidc.Connessione_WiFi(
+        TEMPO_ATTESA_WIFI,
+        ssid_wifi,
+        password_wifi,
+        TEMPO_PAUSA_WIFI,
+    )
+    return wlan
 
-    # Disattivo powersaving
-    wifidc.Powersaving('NO')
 
-    # Stampa info e connette
-    wifidc.Info_WiFi()
-    
-    tempoAttesaConnessione = 10
-    tempoPausaConnessione = 1
-    
-    wifidc.Connessione_WiFi(tempoAttesaConnessione,ssidWifi,passwordWifi,tempoPausaConnessione)
+if __name__ == "__main__":
+    led_stato = crea_led_interno()
+    led_stato.off()
 
-    print("WiFi pronto. Avvio ciclo comunicazione...")
+    configurazione_dispositivo = carica_json("configurazionedc.json")
+    parametri_server = carica_json("da.json")
+
+    inizializza_wifi()
+    print("WiFi pronto. DC avviato.")
+
+    numero_rilevazione = 1
+    tempo_rilevazione = DEFAULT_TEMPO_RILEVAZIONE
+    n_decimali = DEFAULT_N_DECIMALI
 
     while True:
-        clientSocket = None # Inizializzo a None per sicurezza
+        client_socket = None
         try:
-            clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            clientSocket.connect((parametriServer['IP'], parametriServer['porta']))
+            #creazione soket
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client_socket.connect((parametri_server["IP"], parametri_server["porta"]))
 
-            ledStato.value(1)
+            dati_ricevuti_socket = client_socket.recv(BUFFER_SIZE)
+            if dati_ricevuti_socket:
+                parametri_ricevuti_server = json.loads(dati_ricevuti_socket.decode("utf-8"))
+                n_decimali = int(parametri_ricevuti_server.get("N_DECIMALI", n_decimali))
+                tempo_rilevazione = int(parametri_ricevuti_server.get("TEMPO_RILEVAZIONE", tempo_rilevazione))
 
-            # Ricezione parametri
-            datiRicevutiSocket = clientSocket.recv(4096)
-            parametriRicevutiServer = json.loads(datiRicevutiSocket.decode('utf-8'))
+            temperatura, umidita = misura_dati(n_decimali)
+            json_da_inviare = costruisci_iotdata(configurazione_dispositivo, numero_rilevazione,temperatura,umidita,)
 
-            # --- CORREZIONE 1: Casting forzato a intero ---
-            n_decimali = int(parametriRicevutiServer['N_DECIMALI'])
-            tempo_attesa = int(parametriRicevutiServer['TEMPO_RILEVAZIONE'])
+            print("DatoIoT inviato a iotgwda.py:")
+            print(json.dumps(json_da_inviare))
 
-            # Misurazione
-            temperatura, umidita = misurazione.leggi_temp(n_decimali)
-            sommaUmidita += umidita
-            sommaTemperatura += temperatura
+            led_stato.on()
+            client_socket.sendall(json.dumps(json_da_inviare).encode("utf-8"))
+            led_stato.off()
 
-            # ... (resto del codice per il JSON invariato) ...
+            numero_rilevazione += 1
 
-            print(f"Invio rilevazione {numeroRilevazione}...")
-            clientSocket.sendall(json.dumps(jsonDaInviare).encode('utf-8'))
+            client_socket.close()
+            client_socket = None
 
-            numeroRilevazione += 1
-            
-            # Chiudo il socket subito dopo l'invio per liberare memoria
-            clientSocket.close() 
-            
-            time.sleep(tempo_attesa)
+            time.sleep(tempo_rilevazione)
 
         except KeyboardInterrupt:
-            # ... gestione interrupt ...
+            led_stato.off()
+            if client_socket is not None:
+                try:
+                    client_socket.close()
+                except Exception:
+                    pass
+            print("\nDC terminato manualmente.")
             break
-            
-        except Exception as e:
-            print(f"Errore durante il ciclo: {e}")
-            if clientSocket:
-                clientSocket.close() # --- CORREZIONE 2: Chiudo SEMPRE il socket ---
-            time.sleep(5)
 
+        except Exception as errore:
+            led_stato.off()
+            print("Errore nel DC:", errore)
+            if client_socket is not None:
+                try:
+                    client_socket.close()
+                except Exception:
+                    pass
+            time.sleep(TEMPO_RITENTA_ERRORE)
