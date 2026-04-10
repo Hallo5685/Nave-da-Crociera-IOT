@@ -1,112 +1,120 @@
-import socket
 import json
+import socket
 import time
-import datetime
-import crypto as crypto
+from datetime import datetime
+from pathlib import Path
+import crypto
 import paho.mqtt.publish as publish
+
+BASE_DIR = Path(__file__).resolve().parent
+CONFIG_PATH = BASE_DIR / "configurazione" / "parametri.json"
+STATUS_ATTESA = "Gateway IoT in attesa di dati"
+STATUS_RICEZIONE = "Gateway IoT in ricezione e invio"
+
+
+def carica_parametri():
+    with open('configurazione/parametri.json', 'r') as file:
+        parametriServer = json.load(file)
 
 
 if __name__ == "__main__":
+    parametri_server = carica_parametri()
 
-    # variabili per il calcolo delle medie
-    temperaturaTotale = 0
-    umiditaTotale = 0
-    numeroMisurazioni = 0
+    temperatura_totale = 0.0
+    umidita_totale = 0.0
+    numero_misurazioni = 0
+    numero_invio = 0
+    ultimo_invio_database = time.time()
+    ultimo_stato = None
+    ultimo_payload_ricevuto = None
 
-    # timer per l'invio dei dati
-    ultimoInvioDatabase = time.time()
+    parametri_server_bytes = json.dumps(parametri_server).encode("utf-8")
 
-    # lettura parametri di configurazione
-    with open('configurazione/parametri.conf', 'r') as file:
-        parametriServer = json.load(file)
+    #creazione della soket
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_socket.bind((parametri_server["IP_SERVER"], parametri_server["PORTA_SERVER"]))
+    server_socket.listen(5)
+    server_socket.settimeout(0.5)
 
-    # conversione dei parametri in bytes per inviarli al client
-    parametriServerBytes = json.dumps(parametriServer).encode('utf-8')
-
-    # creazione del server TCP (rimane per ricevere dai sensori)
-    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    serverSocket.bind((parametriServer['IP_SERVER'], parametriServer['PORTA_SERVER']))
-    serverSocket.listen(5)
-
-    print(f"Server in ascolto su {parametriServer['IP_SERVER']}:{parametriServer['PORTA_SERVER']}")
+    print(f"Server in ascolto su {parametri_server['IP_SERVER']}:{parametri_server['PORTA_SERVER']}")
 
     while True:
         try:
-            connessioneClient, indirizzoClient = serverSocket.accept()
-            print(f"Connessione da {indirizzoClient}")
+            try:
+                if ultimo_stato != STATUS_ATTESA:
+                    print(STATUS_ATTESA)
+                    ultimo_stato = STATUS_ATTESA
 
-            # invio parametri al client
-            connessioneClient.sendall(parametriServerBytes)
+                #fase di accettazione    
+                connessione_client, indirizzo_client = server_socket.accept()
+            except socket.timeout:
+                connessione_client = None
 
-            # ricezione dati dal client
-            datiRicevutiBytes = connessioneClient.recv(4096)
-            datiRicevutiJson = json.loads(datiRicevutiBytes.decode('utf-8'))
+            if connessione_client is not None:
+                with connessione_client:
+                    connessione_client.sendall(parametri_server_bytes)
+                    dati_ricevuti_bytes = connessione_client.recv(4096)
+                
+                #se non ci sono dati ricevuti continua
+                if not dati_ricevuti_bytes:
+                    continue
 
-            print("Dati ricevuti dal client:", datiRicevutiJson)
+                dati_ricevuti_json = json.loads(dati_ricevuti_bytes.decode("utf-8"))
+                ultimo_payload_ricevuto = dati_ricevuti_json
 
-            # estrazione valori
-            temperatura = datiRicevutiJson['osservazione']['temperatura']
-            umidita = datiRicevutiJson['osservazione']['umidita']
+                print(f"Connessione da {indirizzo_client}")
+                print("Dati ricevuti dal client:", dati_ricevuti_json)
 
-            # aggiornamento somme
-            temperaturaTotale += temperatura
-            umiditaTotale += umidita
-            numeroMisurazioni += 1
+                temperatura = dati_ricevuti_json["osservazione"]["temperatura"]
+                umidita = dati_ricevuti_json["osservazione"]["umidita"]
 
-            connessioneClient.close()
+                temperatura_totale += temperatura
+                umidita_totale += umidita
+                numero_misurazioni += 1
 
-            # controllo invio
-            if time.time() - ultimoInvioDatabase >= parametriServer['TEMPO_INVIO'] and numeroMisurazioni > 0:
+            if (ultimo_payload_ricevuto is not None and numero_misurazioni > 0 and time.time() - ultimo_invio_database >= parametri_server["TEMPO_INVIO"]):
+                temperatura_media = round(temperatura_totale / numero_misurazioni, parametri_server["N_DECIMALI"],)
+                umidita_media = round(umidita_totale / numero_misurazioni, parametri_server["N_DECIMALI"],)
+                numero_invio += 1
 
-                temperaturaMedia = round(
-                    temperaturaTotale / numeroMisurazioni,
-                    parametriServer['N_DECIMALI']
-                )
-
-                umiditaMedia = round(
-                    umiditaTotale / numeroMisurazioni,
-                    parametriServer['N_DECIMALI']
-                )
-
-                # JSON finale
-                jsonDatabase = {
-                    "cabina": datiRicevutiJson['cabina'],
-                    "ponte": datiRicevutiJson['ponte'],
-                    "temperaturam": temperaturaMedia,
-                    "umiditam": umiditaMedia,
-                    "dataeora": datetime.datetime.now().timestamp(),
-                    "invionumero": numeroMisurazioni,
-                    "identita": parametriServer['IDENTITA_GIOT']
+                json_database = {
+                    "cabina": ultimo_payload_ricevuto["cabina"],
+                    "ponte": ultimo_payload_ricevuto["ponte"],
+                    "temperaturam": temperatura_media,
+                    "umiditam": umidita_media,
+                    "dataeora": int(datetime.now().timestamp()),
+                    "invionumero": numero_invio,
+                    "identita": parametri_server["IDENTITA_GIOT"],
                 }
 
-                # conversione JSON
-                jsonString = json.dumps(jsonDatabase, ensure_ascii=False, indent=4)
+                json_string = json.dumps(json_database, ensure_ascii=False)
+                json_criptato = crypto.criptazione(json_string)
 
-                # criptazione (simulata)
-                jsonCriptato = crypto.criptazione(jsonString)
-
-                # ---------------- MQTT PUBLISH ----------------
                 try:
+                    if ultimo_stato != STATUS_RICEZIONE:
+                        print(STATUS_RICEZIONE)
+                        ultimo_stato = STATUS_RICEZIONE
+
                     publish.single(
-                        topic=parametriServer["TOPIC"],
-                        payload=jsonCriptato,
-                        hostname=parametriServer["BROKER"],
-                        port=parametriServer["PORTA_BROKER"]
+                        topic=parametri_server["TOPIC"],
+                        payload=json_criptato,
+                        hostname=parametri_server["BROKER"],
+                        port=parametri_server["PORTA_BROKER"],
                     )
-                    print("Dati pubblicati su MQTT")
+                    print(f"Dati pubblicati su MQTT nel topic {parametri_server['TOPIC']}")
                 except Exception as err:
                     print(f"Errore MQTT: {err}")
-                # ------------------------------------------------
 
-                print("Dati inviati tramite MQTT")
-
-                # reset variabili
-                temperaturaTotale = 0
-                umiditaTotale = 0
-                numeroMisurazioni = 0
-
-                ultimoInvioDatabase = time.time()
+                temperatura_totale = 0.0
+                umidita_totale = 0.0
+                numero_misurazioni = 0
+                ultimo_invio_database = time.time()
 
         except KeyboardInterrupt:
             print("Server interrotto manualmente")
             break
+        except Exception as err:
+            print(f"Errore gateway: {err}")
+
+    server_socket.close()
