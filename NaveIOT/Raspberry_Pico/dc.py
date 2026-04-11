@@ -7,9 +7,7 @@ import rp2
 import misurazione
 import wifidc
 
-
-DEFAULT_N_DECIMALI = 2
-DEFAULT_TEMPO_RILEVAZIONE = 5
+#cosante da tenere
 TEMPO_ATTESA_WIFI = 10
 TEMPO_PAUSA_WIFI = 1
 TEMPO_RITENTA_ERRORE = 5
@@ -75,14 +73,17 @@ if __name__ == "__main__":
     led_stato.off()
 
     configurazione_dispositivo = carica_json("configurazionedc.json")
+    #apertura del file da.json
     parametri_server = carica_json("da.json")
+    #apertura del file parametri.json
+    config_parametri = carica_json("../p3/configurazione/parametri.json")
 
     inizializza_wifi()
     print("WiFi pronto. DC avviato.")
 
     numero_rilevazione = 1
-    tempo_rilevazione = DEFAULT_TEMPO_RILEVAZIONE
-    n_decimali = DEFAULT_N_DECIMALI
+    tempo_rilevazione = config_parametri.get("TEMPO_RILEVAZIONE")
+    n_decimali = config_parametri.get("N_DECIMALI")
 
     while True:
         client_socket = None
